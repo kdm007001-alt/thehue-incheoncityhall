@@ -12,7 +12,7 @@ QUV 참고 사이트의 메뉴 경로와 페이지 흐름을 기준으로 구성
 
 ## 배포 상태
 
-Cloudflare Pages의 GitHub 연동 프로젝트 이름은 `thehue-incheoncityhall-git`입니다. `main` 변경 시 자동 배포를 사용합니다.
+Cloudflare Pages의 GitHub 연동 프로젝트 이름은 `thehue-incheoncityhall-git`입니다. `main` 변경 시 자동 배포되도록 구성되어 있습니다. 자동 배포 동작은 Cloudflare 배포 기록으로 검증합니다.
 
 ## 배포 준비
 
