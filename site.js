@@ -17,7 +17,8 @@ document.querySelectorAll('.lead-form').forEach(form=>form.addEventListener('sub
   state.textContent='접수 중입니다.';
   try{
     const response=await fetch('/api/interest',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
-    if(!response.ok)throw Error('접수 실패');
+    const result=await response.json();
+    if(!response.ok||!result.ok)throw Error(result.error||'접수 중 오류가 발생했습니다.');
     form.reset();state.textContent='관심고객 등록이 완료되었습니다.';
-  }catch{state.textContent='현재 온라인 접수가 연결되지 않았습니다. 1555-1622로 연락해 주세요.'}
+  }catch(error){state.textContent=error.message||'접수 중 오류가 발생했습니다. 1555-1622로 연락해 주세요.'}
 }));
