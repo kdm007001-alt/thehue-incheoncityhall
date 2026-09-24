@@ -6,8 +6,8 @@ QUV 참고 사이트의 메뉴 경로와 페이지 흐름을 기준으로 구성
 
 - `/` 메인: 전체 화면 히어로, 사업개요·입지환경·프리미엄·브랜드·오시는길 이미지, 관심등록
 - `/info`, `/3`, `/4`, `/7`, `/5`, `/6`: 참고 사이트와 같은 메뉴 경로
-- `functions/api/interest.js`: 관심등록 Cloudflare Pages Function
-- `schema.sql`: 비공개 D1 데이터베이스 테이블
+- `functions/api/interest.js`: 통합 고객관리 접수 API로 전달하는 Cloudflare Pages Function
+- 통합관리 현장 식별자: `incheoncityhall-hanshin-thehue`
 - `generate_graphics.py`, `build.py`: 이미지와 HTML 재생성
 
 ## 배포 상태
@@ -17,9 +17,9 @@ Cloudflare Pages의 GitHub 연동 프로젝트 이름은 `thehue-incheoncityhall
 ## 배포 준비
 
 1. Cloudflare Pages에서 이 저장소의 `main`을 연결하고, 빌드 명령은 비우고 빌드 출력 디렉터리는 `.`으로 지정합니다. Pages가 `functions/` 디렉터리를 인식해야 합니다.
-2. D1 데이터베이스를 생성해 `schema.sql`을 적용하고, Pages 프로젝트의 프로덕션 D1 바인딩 이름을 `INTEREST_DB`로 지정합니다. 미연결 상태에서는 접수 API가 503을 반환하며 등록 성공으로 표시하지 않습니다.
-3. 사용자 소유 도메인 `thehue-incheoncityhall.site`를 Pages 맞춤 도메인으로 연결하고, Pages의 정상 응답과 `/api/interest` 접수 흐름을 실제로 확인합니다.
-4. 고객 정보 열람 권한과 보존·삭제 절차를 운영 환경에서 정한 뒤 접수를 공개합니다. D1 데이터를 공개 API로 조회하는 기능은 제공하지 않습니다.
+2. 통합 고객관리 `site-customer-admin`의 `management/sites.json`에 이 현장이 활성 상태로 등록되어 있어야 합니다. 접수는 사이트의 `/api/interest`를 거쳐 중앙 `/api/leads`로 전달됩니다.
+3. 맞춤 도메인은 `thehue-incheoncityhall.site`이며, 중앙 접수와 관리자 목록의 실제 저장 결과를 확인합니다.
+4. 고객 정보 열람과 삭제는 통합 고객관리 관리자 화면에서 진행합니다. 이 사이트에는 별도 고객 데이터베이스를 두지 않습니다.
 
 ## 개발 확인
 
