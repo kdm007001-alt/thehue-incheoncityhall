@@ -13,7 +13,7 @@ QUV 참고 사이트의 메뉴 경로와 페이지 흐름을 기준으로 구성
 
 ## 배포 상태
 
-Cloudflare Pages 프로젝트 `thehue-incheoncityhall-git`는 이 저장소 `main`을 자동 배포합니다. 맞춤 도메인은 `thehue-incheoncityhall.site`입니다. 예약 접수는 2026년 9월 28일 00:00(한국시간)부터 열립니다. 방문시간은 10:00~18:00 사이 30분 단위입니다.
+Cloudflare Pages 프로젝트 `thehue-incheoncityhall-git`는 이 저장소 `main`을 자동 배포합니다. 맞춤 도메인은 `thehue-incheoncityhall.site`입니다. 방문예약 신청은 미리 접수하며, 방문날짜는 2026년 9월 28일부터 선택할 수 있습니다. 방문시간은 10:00~18:00 사이 30분 단위입니다.
 
 통합 고객관리 `site-customer-admin`의 `management/sites.json`에 이 현장이 `visit` 유형으로 등록되어 있습니다. 예약은 이 사이트의 `/api/interest`에서 중앙 `/api/leads`로 전달됩니다. 고객 정보 열람과 삭제는 통합 관리자 화면에서 진행합니다.
 
