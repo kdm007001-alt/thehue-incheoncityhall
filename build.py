@@ -22,7 +22,8 @@ form = f'''<section class="lead-section" id="reservation"><form class="lead-form
 def page(route, body):
     heading = TITLE if route=='/' else f'{dict((url,label) for label,url in NAV)[route]} | {TITLE}'
     nav = ''.join(f'<a href="{url}"'+(' aria-current="page"' if route==url else '')+f'>{label}</a>' for label,url in NAV)
-    html = f'''<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{heading}</title><meta name="description" content="{TITLE}의 사업개요, 입지환경, 프리미엄, 브랜드, 오시는 길과 방문예약 안내."><link rel="canonical" href="{DOMAIN}{route}"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"></head><body><header class="site-header"><a class="brand-name" href="/">{TITLE}</a><nav class="nav" aria-label="주요 메뉴">{nav}</nav><button class="menu-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button></header><main>{body}</main>{footer}<div class="zoom-modal" role="dialog" aria-modal="true" aria-label="지역도 크게 보기"><button type="button" aria-label="닫기">×</button><img alt="지역도 확대 이미지"></div><script src="/site.js?v=20260924-reserve-open" defer></script></body></html>'''
+    canonical = DOMAIN + (route if route == '/' else route + '/')
+    html = f'''<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{heading}</title><meta name="description" content="{TITLE}의 사업개요, 입지환경, 프리미엄, 브랜드, 오시는 길과 방문예약 안내."><link rel="canonical" href="{canonical}"><link rel="alternate" type="application/rss+xml" title="{TITLE} RSS" href="{DOMAIN}/rss.xml"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"></head><body><header class="site-header"><a class="brand-name" href="/">{TITLE}</a><nav class="nav" aria-label="주요 메뉴">{nav}</nav><button class="menu-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button></header><main>{body}</main>{footer}<div class="zoom-modal" role="dialog" aria-modal="true" aria-label="지역도 크게 보기"><button type="button" aria-label="닫기">×</button><img alt="지역도 확대 이미지"></div><script src="/site.js?v=20260924-reserve-open" defer></script></body></html>'''
     path = ROOT/route.lstrip('/')/'index.html' if route!='/' else ROOT/'index.html'
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(html,encoding='utf-8')
@@ -38,4 +39,22 @@ page('/7','<section class="stack poster-page">'+picture(*posters[4])+'</section>
 page('/5','<section class="stack poster-page">'+picture(*posters[5])+'</section>')
 page('/6',event+form)
 (ROOT/'robots.txt').write_text(f'User-agent: *\nAllow: /\nSitemap: {DOMAIN}/sitemap.xml\n',encoding='utf-8')
-(ROOT/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join(f'<url><loc>{DOMAIN}{r}</loc></url>' for r in ['/','/info','/3','/4','/7','/5','/6'])+'</urlset>',encoding='utf-8')
+routes = ['/','/info/','/3/','/4/','/7/','/5/','/6/']
+(ROOT/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join(f'<url><loc>{DOMAIN}{r}</loc></url>' for r in routes)+'</urlset>',encoding='utf-8')
+
+# The RSS descriptions mirror the public sections and link to the same image assets.
+feed_pages = [
+    ('/', TITLE, '총 469세대, 9월 28일 오픈예정. 온라인 방문예약, 사업개요, 입지환경, 프리미엄, 브랜드, 오시는 길 안내.', posters),
+    ('/info/', '사업개요 | '+TITLE, '조감도와 사업개요 안내.', [posters[0]]),
+    ('/3/', '입지환경 | '+TITLE, '인천시청역 한신더휴 지역도.', [posters[2]]),
+    ('/4/', '프리미엄 | '+TITLE, '민간임대 핵심 계약조건과 한신더휴 프리미엄 안내.', [posters[1], ('premium.png','기존 한신더휴 프리미엄 안내 이미지')]),
+    ('/7/', '브랜드 | '+TITLE, '한신공영 브랜드 소개.', [posters[4]]),
+    ('/5/', '오시는길 | '+TITLE, '오시는 길 약도.', [posters[5]]),
+    ('/6/', '방문예약 | '+TITLE, '방문예약 신청. 이름, 연락처, 방문날짜, 방문시간을 입력합니다. 방문날짜는 9월 28일부터, 시간은 오전 10시부터 오후 6시까지 30분 단위입니다.', []),
+]
+feed_items = []
+for route, title, summary, images in feed_pages:
+    url = DOMAIN + route
+    body = '<p>'+escape(summary)+'</p>'+''.join(f'<img src="{DOMAIN}/assets/{filename}" alt="{escape(alt)}">' for filename, alt in images)
+    feed_items.append(f'<item><title>{escape(title)}</title><link>{url}</link><description>{escape(body)}</description><pubDate>Thu, 24 Sep 2026 12:00:00 +0900</pubDate><guid isPermaLink="true">{url}</guid></item>')
+(ROOT/'rss.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>'+TITLE+'</title><link>'+DOMAIN+'/</link><description>인천시청역 한신더휴 현장 안내와 방문예약</description><language>ko-KR</language>'+''.join(feed_items)+'</channel></rss>',encoding='utf-8')
