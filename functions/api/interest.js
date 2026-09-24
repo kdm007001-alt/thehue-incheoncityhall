@@ -1,6 +1,5 @@
 const CENTRAL_LEADS_URL = 'https://site-customer-admin.pages.dev/api/leads';
 const SITE_SLUG = 'incheoncityhall-hanshin-thehue';
-const OPENING = Date.parse('2026-09-28T00:00:00+09:00');
 
 export async function onRequestPost({ request }) {
   const json = (data, status) => new Response(JSON.stringify(data), {
@@ -13,7 +12,6 @@ export async function onRequestPost({ request }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: '잘못된 요청입니다.' }, 400); }
   if (body.website) return json({ ok: true }, 200);
-  if (Date.now() < OPENING) return json({ error: '9월 28일부터 방문예약이 가능합니다.' }, 403);
 
   const name = String(body.name || '').trim().slice(0, 40);
   const phone = String(body.phone || '').replace(/\D/g, '');
