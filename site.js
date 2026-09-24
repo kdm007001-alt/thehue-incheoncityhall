@@ -8,7 +8,6 @@ zoom?.querySelector('button').addEventListener('click',()=>{zoom.classList.remov
 zoom?.addEventListener('click',e=>{if(e.target===zoom)zoom.querySelector('button').click()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&zoom?.classList.contains('show'))zoom.querySelector('button').click()});
 
-const opensAt=Date.parse('2026-09-28T00:00:00+09:00');
 const koreanToday=()=>new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);
 document.querySelectorAll('.lead-form').forEach(form=>{
   const state=form.querySelector('.form-status');
@@ -18,15 +17,12 @@ document.querySelectorAll('.lead-form').forEach(form=>{
     const today=koreanToday();
     date.min=today>'2026-09-28'?today:'2026-09-28';
     if(date.value&&date.value<date.min)date.value='';
-    const open=Date.now()>=opensAt;
-    submit.disabled=!open;
-    submit.textContent=open?'방문예약 신청':'9월 28일부터 예약 가능';
+    submit.disabled=false;
+    submit.textContent='방문예약 신청';
   };
   updateAvailability();
-  if(Date.now()<opensAt) setInterval(updateAvailability,60000);
   form.addEventListener('submit',async e=>{
     e.preventDefault();
-    if(Date.now()<opensAt){state.textContent='9월 28일부터 방문예약이 가능합니다.';return}
     const parts=[...form.querySelectorAll('[data-phone]')].map(el=>el.value.trim());
     if(parts.length!==3||!/^010\d{8}$/.test(parts.join(''))){state.textContent='연락처를 확인해 주세요.';return}
     const payload=Object.fromEntries(new FormData(form));
