@@ -10,6 +10,10 @@ QUV 참고 사이트의 메뉴 경로와 페이지 흐름을 기준으로 구성
 - `schema.sql`: 비공개 D1 데이터베이스 테이블
 - `generate_graphics.py`, `build.py`: 이미지와 HTML 재생성
 
+## 배포 상태
+
+Cloudflare Pages의 GitHub 연동 프로젝트 이름은 `thehue-incheoncityhall-git`입니다. `main` 변경 시 자동 배포를 사용합니다.
+
 ## 배포 준비
 
 1. Cloudflare Pages에서 이 저장소의 `main`을 연결하고, 빌드 명령은 비우고 빌드 출력 디렉터리는 `.`으로 지정합니다. Pages가 `functions/` 디렉터리를 인식해야 합니다.
