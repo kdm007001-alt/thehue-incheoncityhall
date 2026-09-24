@@ -1,5 +1,5 @@
 const CENTRAL_LEADS_URL = 'https://site-customer-admin.pages.dev/api/leads';
-const SITE_SLUG = '인천시청역한신더휴';
+const SITE_SLUG = 'incheoncityhall-hanshin-thehue';
 
 export async function onRequestPost({ request }) {
   const json = (data, status) => new Response(JSON.stringify(data), {
