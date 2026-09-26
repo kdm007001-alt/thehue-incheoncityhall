@@ -15,8 +15,20 @@ privacy = '''1. 수집 항목: 이름, 연락처, 방문날짜, 방문시간
 4. 동의를 거부할 수 있으며, 동의하지 않으면 방문예약이 제한됩니다.
 ※ 열람·정정·삭제 또는 동의 철회는 1555-1622로 요청할 수 있습니다.'''
 
-def picture(filename, alt):
-    return f'<img src="/assets/{filename}" alt="{escape(alt)}" loading="lazy">'
+IMAGE_SIZES = {
+    'overview-official.webp': (830, 1049),
+    'terms-grid.webp': (1254, 1254),
+    'location-official.webp': (828, 770),
+    'siteplan-official.webp': (832, 1955),
+    'brand-official.webp': (1158, 2048),
+    'directions-official.webp': (833, 397),
+    'premium.png': (1258, 1340),
+}
+
+def picture(filename, alt, eager=False):
+    width, height = IMAGE_SIZES[filename]
+    priority = 'eager" fetchpriority="high' if eager else 'lazy'
+    return f'<img src="/assets/{filename}" alt="{escape(alt)}" width="{width}" height="{height}" loading="{priority}" decoding="async">'
 
 event = '''<section class="reservation-intro" aria-labelledby="reserve-title"><svg class="reservation-icon" viewBox="0 0 64 64" aria-hidden="true"><rect x="11" y="15" width="42" height="39" rx="4" fill="none" stroke="currentColor" stroke-width="4"/><path d="M11 26h42M21 9v12M43 9v12M22 36h9M35 36h9M22 45h9" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg><h2 id="reserve-title">온라인 방문예약</h2><p>(9월 28일 이후 방문 일정 예약 접수중)</p><span class="intro-rule" aria-hidden="true"></span></section>'''
 times = ''.join(f'<option value="{h:02d}:{m:02d}">{"오전" if h<12 else "오후"} {h if h<=12 else h-12}시{f" {m}분" if m else ""}</option>' for h in range(10,19) for m in (0,30) if h<18 or m==0)
@@ -49,14 +61,14 @@ def page(route, body):
     path.write_text(html,encoding='utf-8')
 
 shortcuts = '''<section class="home-shortcuts" aria-label="주요 안내"><div class="status-tiles"><div class="households">총 469세대</div><div class="open-date">9월 28일 오픈예정</div></div><a class="shortcut shortcut-location" href="/3"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 14l17-6 18 6 17-6v42l-17 6-18-6-17 6zM23 8v42m18-36v42"/></svg><span>입지환경</span></a><a class="shortcut shortcut-premium" href="/4"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 32L32 10l24 22M15 28v27h34V28M27 55V38h10v17"/></svg><span>프리미엄</span></a><a class="shortcut shortcut-overview" href="/info"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 11h27l11 11v32H10zM37 11v11h11M16 29h25M16 37h25M16 45h18"/></svg><span>사업개요</span></a></section>'''
-posters = [('overview-official.png','조감도와 사업개요'),('terms-grid.png','민간임대 핵심 계약조건'),('location-official.png','인천시청역 한신더휴 지역도'),('siteplan-official.png','단지 배치도와 동호수 배치도'),('brand-official.jpg','한신공영 브랜드 소개'),('directions-official.png','오시는 길 약도')]
+posters = [('overview-official.webp','조감도와 사업개요'),('terms-grid.webp','민간임대 핵심 계약조건'),('location-official.webp','인천시청역 한신더휴 지역도'),('siteplan-official.webp','단지 배치도와 동호수 배치도'),('brand-official.webp','한신공영 브랜드 소개'),('directions-official.webp','오시는 길 약도')]
 hero = '''<section class="hero"><div><p class="overline">도심의 새로운 일상</p><p class="latin">THE HUE</p><h1 class="project">인천시청역 한신더휴</h1></div></section>'''
 page('/',hero+shortcuts+event+form+'<div class="stack home-posters">'+''.join(picture(*item) for item in posters)+'</div>')
-page('/info','<section class="stack poster-page">'+picture(*posters[0])+'</section>')
-page('/3','<section class="stack poster-page">'+picture(*posters[2])+'<button class="map-zoom" type="button" data-zoom="/assets/location-official.png">⌕ 크게보기</button></section>')
-page('/4','<section class="stack poster-page">'+picture(*posters[1])+picture('premium.png','기존 한신더휴 프리미엄 안내 이미지')+'</section>')
-page('/7','<section class="stack poster-page">'+picture(*posters[4])+'</section>')
-page('/5','<section class="stack poster-page">'+picture(*posters[5])+'</section>')
+page('/info','<section class="stack poster-page">'+picture(*posters[0], eager=True)+'</section>')
+page('/3','<section class="stack poster-page">'+picture(*posters[2], eager=True)+'<button class="map-zoom" type="button" data-zoom="/assets/location-official.webp">⌕ 크게보기</button></section>')
+page('/4','<section class="stack poster-page">'+picture(*posters[1], eager=True)+picture('premium.png','기존 한신더휴 프리미엄 안내 이미지')+'</section>')
+page('/7','<section class="stack poster-page">'+picture(*posters[4], eager=True)+'</section>')
+page('/5','<section class="stack poster-page">'+picture(*posters[5], eager=True)+'</section>')
 page('/6',event+form)
 (ROOT/'robots.txt').write_text(f'User-agent: *\nAllow: /\nSitemap: {DOMAIN}/sitemap.xml\n',encoding='utf-8')
 routes = ['/','/info/','/3/','/4/','/7/','/5/','/6/']
