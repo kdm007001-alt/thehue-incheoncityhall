@@ -4,15 +4,17 @@
       window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const cardName = /(?:^|[-_])(?:card|tile)(?:s)?(?:$|[-_])|(?:Card|Tile)$/;
-  const excluded = 'header, nav, footer, form, [role="navigation"], [aria-hidden="true"]';
+  const excluded = 'header, nav, footer, form, [role="navigation"], [aria-hidden="true"], .leaflet-container, .map-frame';
   const root = document.querySelector('main, [role="main"]') || document.body;
-  const candidates = Array.from(root.querySelectorAll('[class], article')).filter((element) => {
+  const candidates = Array.from(root.querySelectorAll('div, li, article')).filter((element) => {
     if (element.closest(excluded) || element.classList.contains('reveal')) return false;
     const names = Array.from(element.classList);
-    const named = names.some((name) => cardName.test(name));
-    const gridArticle = element.tagName === 'ARTICLE' &&
-      /grid|cards|tiles|list/i.test(element.parentElement?.className || '');
-    if (!named && !gridArticle) return false;
+    const named = names.some((name) => cardName.test(name) || name === 'fact');
+    const parentName = String(element.parentElement?.className || '');
+    const gridItem = /^(DIV|LI|ARTICLE)$/.test(element.tagName) &&
+      /grid|cards|tiles|list|facts/i.test(parentName) &&
+      element.parentElement.children.length > 1;
+    if (!named && !gridItem) return false;
     if (names.some((name) => /(?:^|[-_])(?:grid|list|wrap|container)(?:$|[-_])|(?:Grid|List|Wrap)$/.test(name))) return false;
     const style = getComputedStyle(element);
     return style.display !== 'none' && style.visibility !== 'hidden' &&
