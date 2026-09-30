@@ -57,7 +57,7 @@ def overview():
         txt(d,(x,y+90),v,23,MUTED)
     txt(d,(50,1170),'인천시청역 한신더휴  |  인천광역시 남동구 석산로62번길 35',23,INK)
     footer_note(d,1215)
-    im.save(ASSETS/'overview.png',optimize=True)
+    im.save(ASSETS/'overview.webp',optimize=True)
 
 def schematic(d,ox,oy):
     d.rounded_rectangle((ox,oy,ox+1158,oy+710),radius=13,fill='#f8f9f9',outline='#d7dce0',width=2)
@@ -99,7 +99,7 @@ def location():
         for j,line in enumerate(s.split('\n')): txt(d,(x+34,y+132+j*44),line,27,MUTED)
         txt(d,(box[2]-98,y+318),'현장 이미지',16,'#ffffff')
     footer_note(d,2750)
-    im.save(ASSETS/'location.png',optimize=True)
+    im.save(ASSETS/'location.webp',optimize=True)
 
 def premium():
     im,d=canvas(1340)
@@ -120,7 +120,7 @@ def premium():
         d.line((x+170,y+125,x+500,y+125),fill='#ffffff',width=2)
         for j,line in enumerate(desc.split('\n')): txt(d,(x+170,y+153+j*41),line,22,'#eef3f7')
     footer_note(d,1286)
-    im.save(ASSETS/'premium.png',optimize=True)
+    im.save(ASSETS/'premium.webp',optimize=True)
 
 def brand():
     im,d=canvas(2280)
@@ -142,7 +142,7 @@ def brand():
         d.line((85,y+176,1173,y+176),fill='#d5d9dd',width=2)
     photo(im,'rendering.jpg',(85,1830,1173,2180),pos=(0.5,0.6))
     footer_note(d,2240)
-    im.save(ASSETS/'brand.png',optimize=True)
+    im.save(ASSETS/'brand.webp',optimize=True)
 
 def directions():
     im,d=canvas(650)

@@ -22,7 +22,7 @@ IMAGE_SIZES = {
     'siteplan-official.webp': (832, 1955),
     'brand-official.webp': (1158, 2048),
     'directions-official.webp': (833, 397),
-    'premium.png': (1258, 1340),
+    'premium.webp': (1258, 1340),
 }
 
 def picture(filename, alt, eager=False):
@@ -66,7 +66,7 @@ hero = '''<section class="hero"><div><p class="overline">도심의 새로운 일
 page('/',hero+shortcuts+event+form+'<div class="stack home-posters">'+''.join(picture(*item) for item in posters)+'</div>')
 page('/info','<section class="stack poster-page">'+picture(*posters[0], eager=True)+'</section>')
 page('/3','<section class="stack poster-page">'+picture(*posters[2], eager=True)+'<button class="map-zoom" type="button" data-zoom="/assets/location-official.webp">⌕ 크게보기</button></section>')
-page('/4','<section class="stack poster-page">'+picture(*posters[1], eager=True)+picture('premium.png','기존 한신더휴 프리미엄 안내 이미지')+'</section>')
+page('/4','<section class="stack poster-page">'+picture(*posters[1], eager=True)+picture('premium.webp','기존 한신더휴 프리미엄 안내 이미지')+'</section>')
 page('/7','<section class="stack poster-page">'+picture(*posters[4], eager=True)+'</section>')
 page('/5','<section class="stack poster-page">'+picture(*posters[5], eager=True)+'</section>')
 page('/6',event+form)
@@ -79,7 +79,7 @@ feed_pages = [
     ('/', TITLE, '총 469세대, 9월 28일 오픈예정. 온라인 방문예약, 사업개요, 입지환경, 프리미엄, 브랜드, 오시는 길 안내.', posters),
     ('/info/', '사업개요 | '+TITLE, '조감도와 사업개요 안내.', [posters[0]]),
     ('/3/', '입지환경 | '+TITLE, '인천시청역 한신더휴 지역도.', [posters[2]]),
-    ('/4/', '프리미엄 | '+TITLE, '민간임대 핵심 계약조건과 한신더휴 프리미엄 안내.', [posters[1], ('premium.png','기존 한신더휴 프리미엄 안내 이미지')]),
+    ('/4/', '프리미엄 | '+TITLE, '민간임대 핵심 계약조건과 한신더휴 프리미엄 안내.', [posters[1], ('premium.webp','기존 한신더휴 프리미엄 안내 이미지')]),
     ('/7/', '브랜드 | '+TITLE, '한신공영 브랜드 소개.', [posters[4]]),
     ('/5/', '오시는길 | '+TITLE, '오시는 길 약도.', [posters[5]]),
     ('/6/', '방문예약 | '+TITLE, '방문예약 신청. 이름, 연락처, 방문날짜, 방문시간을 입력합니다. 방문날짜는 9월 28일부터, 시간은 오전 10시부터 오후 6시까지 30분 단위입니다.', []),
