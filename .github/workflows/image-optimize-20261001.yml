@@ -1,0 +1,202 @@
+name: Image optimization 20261001
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/image-optimize-20261001.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: image-optimization-20261001
+  cancel-in-progress: false
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Install image encoders
+        run: python -m pip install --disable-pip-version-check Pillow==12.3.0 numpy==2.3.5 PyYAML==6.0.2
+      - name: Optimize and verify images only
+        env:
+          IMAGE_LOCAL_DOMAINS: "apt-dm.co.kr,apt1.co.kr,apt0123.com,apt00700.co.kr,apt486.co.kr,aptday.co.kr,aptdm.kr,apt2s.kr,apthouse.kr,aptdate.co.kr,apt33.co.kr,apt49.co.kr,apt4s.co.kr,aptbest.co.kr,apt-one.co.kr,apt2u.kr,apt0.co.kr,apt4949.co.kr,aptto.co.kr,apt360.co.kr,apt1000.co.kr,apt8282.co.kr,apt010.co.kr,apt2day.co.kr,aptdm.co.kr,apt82.co.kr,aptme.co.kr,apt100.co.kr,aptabc.co.kr,apt-day.co.kr,aptyou.co.kr,thehue-incheoncityhall.site,xirene-jukjeon.store,hobansummit-centralbay.site"
+          IMAGE_SKIP_PREFIXES: "sites/apt9871-co-kr/"
+        run: |
+          cat > /tmp/image-opt.py <<'PY'
+          import os, sys, io, re, json, hashlib, subprocess, urllib.parse
+          from pathlib import Path
+          from collections import defaultdict
+          from concurrent.futures import ThreadPoolExecutor
+          from PIL import Image
+          import numpy as np
+          
+          root = Path(sys.argv[1]).resolve()
+          report_path = Path(sys.argv[2]).resolve()
+          Image.MAX_IMAGE_PIXELS = 100_000_000
+          skip = {'.git', 'node_modules', '.next', '.sites-runtime', '.wrangler', '.github', '__pycache__'}
+          def excluded(p):
+              parts = p.relative_to(root).parts
+              return any(str(p.relative_to(root)).startswith(prefix) for prefix in os.environ.get('IMAGE_SKIP_PREFIXES','').split(',') if prefix) or any(x in skip or x.startswith('canonical-') or x in {'frozen-reference-sites', 'fixed-templates'} for x in parts)
+          files = [p for p in root.rglob('*') if p.is_file() and not excluded(p)]
+          images = [p for p in files if p.suffix.lower() in {'.png', '.jpg', '.jpeg', '.webp'} and p.stat().st_size >= 30000 and not re.search(r'favicon|logo|icon|screenshot', p.name, re.I)]
+          groups = defaultdict(list)
+          for p in images: groups[hashlib.sha256(p.read_bytes()).hexdigest()].append(p)
+          report = {'root': root.name, 'scanned': len(images), 'unique': len(groups), 'changed': [], 'converted': [], 'reference_files': [], 'errors': [], 'before_bytes': sum(p.stat().st_size for p in images)}
+          converts = {}
+          def encoded(im, fmt, **kw):
+              buf = io.BytesIO(); im.save(buf, format=fmt, **kw); return buf.getvalue()
+          def similarity(a,b):
+              a=a.convert('RGB'); b=b.convert('RGB'); a.thumbnail((1024,1024)); b.thumbnail((1024,1024))
+              x=np.asarray(a,dtype=np.float64); y=np.asarray(b,dtype=np.float64)
+              mx=x.mean((0,1)); my=y.mean((0,1)); vx=x.var((0,1)); vy=y.var((0,1)); cv=((x-mx)*(y-my)).mean((0,1))
+              return float((((2*mx*my+6.5025)*(2*cv+58.5225))/((mx*mx+my*my+6.5025)*(vx+vy+58.5225))).min()), float(np.abs(x-y).mean())
+          def process(paths):
+              p=paths[0]; old=p.read_bytes()
+              try:
+                  with Image.open(io.BytesIO(old)) as src:
+                      if getattr(src,'n_frames',1)>1: return None
+                      im=src.copy(); fmt=src.format; size=src.size
+                      if fmt not in {'PNG','JPEG','WEBP'}: return None
+                      common={k:src.info[k] for k in ('icc_profile','exif') if src.info.get(k)}
+                  best=old; web=None
+                  if fmt=='PNG':
+                      candidate=encoded(im,'PNG',optimize=True,compress_level=9,**common)
+                      if len(candidate)<len(best): best=candidate
+                      candidate=encoded(im.convert('RGBA'),'WEBP',lossless=True,method=4,exact=True,**common)
+                      if len(candidate)<len(old)*.85 and len(old)-len(candidate)>12000:
+                          with Image.open(io.BytesIO(candidate)) as decoded:
+                              if decoded.size==size and np.array_equal(np.asarray(im.convert('RGBA')),np.asarray(decoded.convert('RGBA'))): web=candidate
+                  elif re.search(r'hero|main|thumb|point-|card-|premium|perspective|aerial|vision|nature|education|transport|example',p.name,re.I) and not re.search(r'map|plan|unit|type|location|layout|floor|siteplan',p.name,re.I):
+                      for quality in (90,95,98):
+                          candidate=encoded(im,fmt,quality=quality,**({'optimize':True,'progressive':True,'subsampling':0} if fmt=='JPEG' else {'method':4}),**common)
+                          if len(candidate)>=len(old)*.9 or len(old)-len(candidate)<12000: continue
+                          with Image.open(io.BytesIO(candidate)) as decoded:
+                              score,mae=similarity(im.copy(),decoded.copy())
+                              alpha=im.mode!='RGBA' or np.array_equal(np.asarray(im.getchannel('A')),np.asarray(decoded.convert('RGBA').getchannel('A')))
+                              if decoded.size==size and score>=.997 and mae<=1.5 and alpha: best=candidate; break
+                  changed=[]
+                  if len(best)<len(old)*.98 and len(old)-len(best)>=4096:
+                      for q in paths:
+                          q.write_bytes(best); changed.append({'path':str(q.relative_to(root)),'before':len(old),'after':len(best),'width':size[0],'height':size[1],'format':fmt,'sha256':hashlib.sha256(best).hexdigest()})
+                  return paths, web, changed
+              except Exception as e:
+                  return {'path':str(p.relative_to(root)),'reason':str(e)[:200]}
+          with ThreadPoolExecutor(max_workers=min(4,os.cpu_count() or 2)) as pool:
+              for result in pool.map(process,groups.values()):
+                  if not result: continue
+                  if isinstance(result,dict): report['errors'].append(result); continue
+                  paths,web,changed=result; report['changed'].extend(changed)
+                  if web:
+                      for p in paths:
+                          if not p.with_suffix('.webp').exists(): converts[p]=web
+          by_name=defaultdict(list)
+          for p in files:
+              if p.suffix.lower()=='.png': by_name[p.name].append(p)
+          names={}
+          for name,paths in by_name.items():
+              if paths and all(p in converts for p in paths):
+                  for p in paths:
+                      target=p.with_suffix('.webp'); data=converts[p]; target.write_bytes(data)
+                      report['converted'].append({'path':str(p.relative_to(root)),'webp':str(target.relative_to(root)),'before':p.stat().st_size,'after':len(data),'lossless':True,'sha256':hashlib.sha256(data).hexdigest()})
+                  names[name]=Path(name).with_suffix('.webp').name
+                  names[urllib.parse.quote(name)]=urllib.parse.quote(Path(name).with_suffix('.webp').name)
+          domains=set(os.environ.get('IMAGE_LOCAL_DOMAINS','apt-dm.co.kr').split(','))
+          pattern=re.compile(r'(?P<token>[^\s\"\'<>`(){}\[\],;\\=]*?(?P<name>'+ '|'.join(re.escape(n) for n in sorted(names,key=len,reverse=True))+r'))(?![\w.\-])') if names else None
+          def replacement(m):
+              token=m['token']; name=m['name']
+              if token.startswith(('http://','https://','//')):
+                  host=urllib.parse.urlsplit(token if not token.startswith('//') else 'https:'+token).hostname
+                  if host not in domains:return token
+              return token[:-len(name)]+names[name]
+          if pattern:
+              for p in files:
+                  if p.suffix.lower() not in {'.astro','.html','.htm','.js','.mjs','.cjs','.ts','.tsx','.jsx','.json','.css','.scss','.xml','.py'}:continue
+                  try:
+                      before=p.read_bytes().decode('utf-8'); after=pattern.sub(replacement,before)
+                      if after!=before:p.write_bytes(after.encode('utf-8'));report['reference_files'].append(str(p.relative_to(root)))
+                  except UnicodeError:pass
+          used=set()
+          for path in report['reference_files']:
+              contents=(root/path).read_text()
+              used.update(b for b in names.values() if b in contents)
+          kept=[]
+          for c in report['converted']:
+              basename=Path(c['webp']).name
+              if basename in used or urllib.parse.quote(basename) in used: kept.append(c)
+              else:(root/c['webp']).unlink()
+          report['converted']=kept
+          def git(*args): return subprocess.check_output(['git','-C',str(root),*args])
+          changed_paths=[p for p in git('diff','--name-only','-z').decode().split('\0') if p]
+          recorded={x['path'] for x in report['changed']}
+          for path in changed_paths:
+              if path in recorded:
+                  with Image.open(root/path) as im: im.verify()
+                  continue
+              if path not in report['reference_files']:raise RuntimeError('Unexpected non-image change: '+path)
+              before=git('show','HEAD:'+path).decode('utf-8')
+              if pattern.sub(replacement,before)!=(root/path).read_bytes().decode('utf-8'):raise RuntimeError('Non-image content changed: '+path)
+          expected_new={x['webp'] for x in kept}
+          actual_new={p for p in git('ls-files','--others','--exclude-standard','-z').decode().split('\0') if p}
+          if actual_new!=expected_new:raise RuntimeError('Unexpected new files: '+str(actual_new^expected_new))
+          report['after_bytes']=sum(p.stat().st_size for p in images)
+          report['same_format_saved_bytes']=report['before_bytes']-report['after_bytes']
+          report['converted_request_saved_bytes']=sum(x['before']-x['after'] for x in kept)
+          report['verified']='dimensions and aspect ratios unchanged; PNG/WebP conversions pixel-identical; photo re-encoding similarity>=0.997 and MAE<=1.5; alpha preserved; no non-image content changes'
+          report['changed_paths']=changed_paths+sorted(expected_new)
+          report_path.parent.mkdir(parents=True,exist_ok=True); report_path.write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          print(json.dumps({k:report[k] for k in ('root','scanned','unique','same_format_saved_bytes','converted_request_saved_bytes','errors')},ensure_ascii=False),flush=True)
+          
+          PY
+          python /tmp/image-opt.py . /tmp/image-opt-report.json
+      - name: Save image changes and remove one-time workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          r=json.loads(Path('/tmp/image-opt-report.json').read_text())
+          if r['changed_paths']:
+              subprocess.run(['git','add','--',*r['changed_paths']],check=True)
+          Path('.github/workflows/image-optimize-20261001.yml').unlink()
+          subprocess.run(['git','add','--','.github/workflows/image-optimize-20261001.yml'],check=True)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Optimize image assets only; preserve page content and layout'
+          git push origin HEAD:main
+          git rev-parse HEAD > /tmp/image-opt-commit.txt
+          python - <<'PY'
+          import json,subprocess,fnmatch,yaml
+          from pathlib import Path
+          report=json.loads(Path('/tmp/image-opt-report.json').read_text())
+          changed=report['changed_paths']; runs=[]
+          for path in sorted(Path('.github/workflows').glob('*.y*ml')):
+              content=path.read_text(); data=yaml.safe_load(content)
+              if not isinstance(data,dict) or 'wrangler' not in content or 'pages deploy' not in content: continue
+              triggers=data.get('on',data.get(True,{}))
+              push=triggers.get('push',{}) if isinstance(triggers,dict) else {}
+              patterns=push.get('paths',[]) if isinstance(push,dict) else []
+              matches=bool(changed) and (not patterns or any(fnmatch.fnmatch(p,pattern) for p in changed for pattern in patterns))
+              if not matches:continue
+              if not isinstance(triggers,dict) or 'workflow_dispatch' not in triggers:
+                  runs.append({'workflow':str(path),'status':'needs_push_trigger'});continue
+              proc=subprocess.run(['gh','workflow','run',path.name,'--ref','main'],text=True,capture_output=True)
+              runs.append({'workflow':str(path),'status':'dispatched' if proc.returncode==0 else 'dispatch_failed','error':proc.stderr[:300] if proc.returncode else ''})
+          Path('/tmp/image-opt-deployments.json').write_text(json.dumps(runs,indent=2))
+          print(json.dumps({'changed_images':len(report['changed']),'new_webp':len(report['converted']),'image_references':len(report['reference_files']),'deployments':runs}))
+          PY
+      - name: Save optimization verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-optimization-report
+          path: |
+            /tmp/image-opt-report.json
+            /tmp/image-opt-commit.txt
+            /tmp/image-opt-deployments.json
+          if-no-files-found: warn
