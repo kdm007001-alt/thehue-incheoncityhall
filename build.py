@@ -90,3 +90,7 @@ for route, title, summary, images in feed_pages:
     body = '<p>'+escape(summary)+'</p>'+''.join(f'<img src="{DOMAIN}/assets/{filename}" alt="{escape(alt)}">' for filename, alt in images)
     feed_items.append(f'<item><title>{escape(title)}</title><link>{url}</link><description>{escape(body)}</description><pubDate>Thu, 24 Sep 2026 12:00:00 +0900</pubDate><guid isPermaLink="true">{url}</guid></item>')
 (ROOT/'rss.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>'+TITLE+'</title><link>'+DOMAIN+'/</link><description>인천시청역 한신더휴 현장 안내와 방문예약</description><language>ko-KR</language>'+''.join(feed_items)+'</channel></rss>',encoding='utf-8')
+
+# Keep generated search metadata consistent with the field identity.
+import subprocess
+subprocess.run(["node", str(ROOT / "scripts/seo-project-metadata.mjs"), str(ROOT), str(ROOT / "seo-projects.json")], check=True)
