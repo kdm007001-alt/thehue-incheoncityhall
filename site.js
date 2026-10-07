@@ -34,7 +34,7 @@ document.querySelectorAll('.lead-form').forEach(form=>{
       const result=await response.json();
       if(!response.ok||!result.ok)throw Error(result.error||'방문예약 접수 중 오류가 발생했습니다.');
       form.reset();state.textContent='방문예약 접수가 완료되었습니다.';
-    }catch(error){state.textContent=error.message||'접수 중 오류가 발생했습니다. 1555-1622로 연락해 주세요.'}
+    }catch(error){state.textContent=error.message||'접수 중 오류가 발생했습니다. 1666-9871로 연락해 주세요.'}
     finally{updateAvailability()}
   });
 });
