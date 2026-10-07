@@ -22,7 +22,51 @@ function enrichDescription(old,target,body,isHome){let d=old.trim();if(!d)return
  }}
  return d;
 }
-export function optimizeHtml(html,target,isHome=false){const match=html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i);if(!match)throw new Error('Missing head');const before=match[1];let head=before;
+// Enrich verified image metadata without changing page content or layout.
+export function weeklyHead(head,html,target,canonical){
+ if(!target.imageMetadata)return head;
+ const absolute=value=>{try{const u=new URL(value,canonical);return /^https?:$/.test(u.protocol)?u.href:value;}catch{return value;}};
+ const infoFor=value=>target.imageMetadata[absolute(value)];
+ const image=meta(head,'og:image');
+ if(image){
+  const url=absolute(image);head=setMeta(head,'og:image',url);
+  const twitter=meta(head,'twitter:image');if(twitter)head=setMeta(head,'twitter:image',absolute(twitter));
+  const info=infoFor(url);
+  if(info){
+   if(info.width&&info.height){head=setMeta(head,'og:image:width',info.width);head=setMeta(head,'og:image:height',info.height);}
+   if(info.type)head=setMeta(head,'og:image:type',info.type);
+   const alt=meta(head,'og:image:alt')||info.alt;
+   if(alt){head=setMeta(head,'og:image:alt',alt);if(!twitter||absolute(twitter)===url)head=setMeta(head,'twitter:image:alt',alt);}
+  }
+ }
+ head=setMeta(head,'og:url',canonical);
+ if(!meta(head,'og:locale'))head=setMeta(head,'og:locale','ko_KR');
+ function visit(node){
+  if(!node||typeof node!=='object')return;
+  if(Array.isArray(node)){node.forEach(visit);return;}
+  for(const k of ['image','thumbnailUrl','primaryImageOfPage']){
+   if(typeof node[k]==='string')node[k]=absolute(node[k]);
+   else if(Array.isArray(node[k]))node[k]=node[k].map(x=>typeof x==='string'?absolute(x):x);
+  }
+  if(node['@type']==='ImageObject'){
+   for(const k of ['url','contentUrl'])if(typeof node[k]==='string')node[k]=absolute(node[k]);
+   const info=infoFor(node.url||node.contentUrl||'');
+   if(info){if(info.width)node.width=info.width;if(info.height)node.height=info.height;if(info.type)node.encodingFormat=info.type;}
+  }
+  Object.values(node).forEach(visit);
+ }
+ return head.replace(/<script\b([^>]*\btype\s*=\s*["']application\/ld\+json["'][^>]*)>([\s\S]*?)<\/script>/gi,(all,a,raw)=>{const data=JSON.parse(raw);if(target.linkMainEntity&&Array.isArray(data['@graph'])){const page=data['@graph'].find(n=>n['@type']==='WebPage');const entity=data['@graph'].find(n=>n['@type']==='ApartmentComplex');if(page&&entity){entity['@id']||=canonical+'#apartment';page.mainEntity||={'@id':entity['@id']};}}visit(data);return `<script${a}>${JSON.stringify(data).replace(/</g,'\\u003c')}</script>`;});
+}
+function optimizeWeeklyOnly(html,target){
+ const m=html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i);if(!m)throw new Error('Missing head');
+ if(/noindex/i.test(meta(m[1],'robots')))return {html,skipped:true};
+ const tag=[...m[1].matchAll(/<link\b[^>]*>/gi)].find(x=>attrs(x[0]).rel==='canonical');const canonical=tag?attrs(tag[0]).href:'';
+ if(!/^https:\/\//.test(canonical))throw new Error('Missing canonical');
+ const head=weeklyHead(m[1],html,target,canonical);const output=html.slice(0,m.index)+m[0].replace(m[1],head)+html.slice(m.index+m[0].length);
+ return {html:output,changed:output!==html,canonical,description:meta(head,'description'),oldDescription:meta(m[1],'description')};
+}
+
+export function optimizeHtml(html,target,isHome=false){if(target.weeklyOnly)return optimizeWeeklyOnly(html,target);const match=html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i);if(!match)throw new Error('Missing head');const before=match[1];let head=before;
  if(/(?:^|,)\s*noindex/i.test(meta(head,'robots')))return {html,skipped:true};
  const title=decode((head.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'').trim();
  const canonicalTag=[...head.matchAll(/<link\b[^>]*>/gi)].find(m=>attrs(m[0]).rel==='canonical');const canonical=canonicalTag?attrs(canonicalTag[0]).href:'';
@@ -44,6 +88,7 @@ export function optimizeHtml(html,target,isHome=false){const match=html.match(/<
  }
  head=head.replace(/<script\b([^>]*\btype\s*=\s*["']application\/ld\+json["'][^>]*)>([\s\S]*?)<\/script>/gi,(all,a,raw)=>{let data;try{data=JSON.parse(raw);}catch{throw new Error(`Invalid existing JSON-LD: ${canonical}`);}enrich(data);return `<script${a}>${JSON.stringify(data).replace(/</g,'\\u003c')}</script>`;});
  if(!pages){const data={'@context':'https://schema.org','@type':'WebPage',url:canonical};enrich(data);head+=`<script type="application/ld+json">${JSON.stringify(data).replace(/</g,'\\u003c')}</script>`;}
+ head=weeklyHead(head,html,target,canonical);
  const output=html.slice(0,match.index)+match[0].replace(before,head)+html.slice(match.index+match[0].length);
  if(output.slice(output.indexOf('</head>')+7)!==html.slice(html.indexOf('</head>')+7))throw new Error('Body changed');
  if(meta(head,'description')!==meta(head,'og:description')||meta(head,'description')!==meta(head,'twitter:description'))throw new Error('Description mismatch');

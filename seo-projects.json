@@ -12,7 +12,14 @@
         ""
       ],
       "siteUrl": "",
-      "siteName": "인천시청역 한신더휴"
+      "siteName": "인천시청역 한신더휴",
+      "imageMetadata": {
+        "https://thehue-incheoncityhall.site/assets/overview-official.png": {
+          "width": 830,
+          "height": 1049,
+          "type": "image/png"
+        }
+      }
     }
   ]
 }
